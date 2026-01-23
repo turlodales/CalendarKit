@@ -48,16 +48,6 @@ The preferred way of installing CalendarKit is via the [Swift Package Manager](h
 
 [Adding Package Dependencies to Your App](https://developer.apple.com/documentation/swift_packages/adding_package_dependencies_to_your_app)
 
-### CocoaPods
-⚠️ Warning: CocoaPods support is deprecated and will be removed at a later date. It's recommended to migrate your installation of CalendarKit to using Swift Package Manager.
-
-To install it, add the following line to your Podfile:
-
-```ruby
-pod 'CalendarKit'
-```
-[Adding Pods to an Xcode project](https://guides.cocoapods.org/using/using-cocoapods.html)
-
 ## Usage
 1. Subclass `DayViewController`
 2. Implement `EventDataSource` protocol to show events.
