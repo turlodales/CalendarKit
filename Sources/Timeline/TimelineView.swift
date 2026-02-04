@@ -19,6 +19,8 @@ public final class TimelineView: UIView {
     private var currentTime: Date {
         Date()
     }
+    
+    private var removedHourIndex: Int = -1
 
     private var eventViews = [EventView]()
     public private(set) var regularLayoutAttributes = [EventLayoutAttributes]()
@@ -108,6 +110,25 @@ public final class TimelineView: UIView {
             setNeedsLayout()
         }
     }
+    
+    private weak var timer: Timer?
+    @objc private func timerDidFire(_ sender: Timer) {
+        layoutNowLine()
+
+        if isToday {
+            var hourToRemoveIndex = -1
+            let minute = component(component: .minute, from: currentTime)
+            let hour = component(component: .hour, from: currentTime)
+            if minute > 39 {
+                hourToRemoveIndex = hour + 1
+            } else if minute < 21 {
+                hourToRemoveIndex = hour
+            }
+            if (hourToRemoveIndex != removedHourIndex) {
+                setNeedsDisplay()
+            }
+        }
+    }
 
     public var eventEditingSnappingBehavior: EventEditingSnappingBehavior = SnapTo15MinuteIntervals() {
         didSet {
@@ -162,10 +183,31 @@ public final class TimelineView: UIView {
         contentMode = .redraw
         backgroundColor = .white
         addSubview(nowLine)
+        configureTimer()
 
         // Add long press gesture recognizer
         addGestureRecognizer(longPressGestureRecognizer)
         addGestureRecognizer(tapGestureRecognizer)
+    }
+    
+    private func configureTimer() {
+        invalidateTimer()
+        let date = Date()
+        var components = calendar.dateComponents(Set([.era, .year, .month, .day, .hour, .minute]), from: date)
+        components.minute! += 1
+        let timerDate = calendar.date(from: components)!
+        let newTimer = Timer(fireAt: timerDate,
+                             interval: 60,
+                             target: self,
+                             selector: #selector(timerDidFire(_:)),
+                             userInfo: nil,
+                             repeats: true)
+        RunLoop.current.add(newTimer, forMode: .common)
+        timer = newTimer
+    }
+
+    private func invalidateTimer() {
+        timer?.invalidate()
     }
 
     // MARK: - Event Handling
@@ -253,7 +295,7 @@ public final class TimelineView: UIView {
     override public func draw(_ rect: CGRect) {
         super.draw(rect)
 
-        var hourToRemoveIndex = -1
+        removedHourIndex = -1
 
         var accentedHour = -1
         var accentedMinute = -1
@@ -267,9 +309,9 @@ public final class TimelineView: UIView {
             let minute = component(component: .minute, from: currentTime)
             let hour = component(component: .hour, from: currentTime)
             if minute > 39 {
-                hourToRemoveIndex = hour + 1
+                removedHourIndex = hour + 1
             } else if minute < 21 {
-                hourToRemoveIndex = hour
+                removedHourIndex = hour
             }
         }
 
@@ -324,7 +366,7 @@ public final class TimelineView: UIView {
             context?.strokePath()
             context?.restoreGState()
 
-            if hour == hourToRemoveIndex { continue }
+            if hour == removedHourIndex { continue }
 
             let fontSize = style.font.pointSize
             let timeRect: CGRect = {
@@ -569,5 +611,14 @@ public final class TimelineView: UIView {
         let beginningRange = calendar.date(byAdding: .minute, value: -(earliestEventMintues - minuteRange), to: date)!
         let endRange = calendar.date(byAdding: .minute, value: splitMinuteInterval, to: beginningRange)!
         return DateInterval(start: beginningRange, end: endRange)
+    }
+    
+    public override func willMove(toSuperview newSuperview: UIView?) {
+        super.willMove(toSuperview: newSuperview)
+        if newSuperview != nil {
+            configureTimer()
+        } else {
+            invalidateTimer()
+        }
     }
 }
