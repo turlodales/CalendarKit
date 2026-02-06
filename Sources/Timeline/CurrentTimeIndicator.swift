@@ -10,11 +10,6 @@ import UIKit
         }
     }
 
-    private weak var timer: Timer?
-    @objc private func timerDidFire(_ sender: Timer) {
-        date = Date()
-    }
-
     /// Determines if times should be displayed in a 24 hour format. Defaults to the current locale's setting
     public var is24hClock : Bool = true {
         didSet {
@@ -71,28 +66,7 @@ import UIKit
         timeLabel.baselineAdjustment = .alignCenters
 
         updateStyle(style)
-        configureTimer()
         isUserInteractionEnabled = false
-    }
-
-    private func configureTimer() {
-        invalidateTimer()
-        let date = Date()
-        var components = calendar.dateComponents(Set([.era, .year, .month, .day, .hour, .minute]), from: date)
-        components.minute! += 1
-        let timerDate = calendar.date(from: components)!
-        let newTimer = Timer(fireAt: timerDate,
-                             interval: 60,
-                             target: self,
-                             selector: #selector(timerDidFire(_:)),
-                             userInfo: nil,
-                             repeats: true)
-        RunLoop.current.add(newTimer, forMode: .common)
-        timer = newTimer
-    }
-
-    private func invalidateTimer() {
-        timer?.invalidate()
     }
     
     private func updateDate() {
@@ -102,7 +76,6 @@ import UIKit
         timeLabel.text = dateFormatter.string(from: date)
         timeLabel.sizeToFit()
         setNeedsLayout()
-        configureTimer()
     }
 
     override public func layoutSubviews() {
@@ -152,15 +125,6 @@ import UIKit
         default:
             is24hClock = Locale.autoupdatingCurrent.uses24hClock
             break
-        }
-    }
-
-    public override func willMove(toSuperview newSuperview: UIView?) {
-        super.willMove(toSuperview: newSuperview)
-        if newSuperview != nil {
-            configureTimer()
-        } else {
-            invalidateTimer()
         }
     }
 }
